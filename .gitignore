@@ -1,0 +1,23 @@
+# Node
+node_modules/
+package-lock.json
+
+# Bundled Node.js runtime (large binary — distributed separately via setup_runtime.ps1)
+runtime/
+
+# Developer-only tools (not shipped to players)
+SETUP_GITHUB.bat
+setup_github.ps1
+
+# Build artifacts
+pixel-pal.zip
+_update.zip
+_update_temp/
+
+# Game music (large audio files — distribute separately or keep local)
+game music/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,13 @@
+{
+  "name": "pixel-pal-server",
+  "version": "1.0.0",
+  "description": "Relay server for Pixel Pal online co-op",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5",
+    "serve": "^14.2.4"
+  }
+}

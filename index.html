@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PIXEL</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ═══════ SPLASH SCREEN ═══════ -->
+<div id="splashScreen">
+  <div class="splash-welcome">WELCOME TO THE</div>
+  <div class="splash-title">PIXEL PAL</div>
+  <div class="splash-demo">D E M O</div>
+</div>
+<script>
+  (function() {
+    var splash = document.getElementById('splashScreen');
+    setTimeout(function() {
+      splash.style.opacity = '0';
+      setTimeout(function() { splash.style.display = 'none'; }, 900);
+    }, 3200);
+  })();
+</script>
+
+<!-- ═══════ TITLE SCREEN ═══════ -->
+<div id="titleScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;background:#040410;display:flex;align-items:center;justify-content:center;">
+  <canvas id="titleCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+</div>
+
+<!-- ═══════ CHARACTER CREATION SCREEN ═══════ -->
+<div id="charCreationScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:600;background:#030310;align-items:center;justify-content:center;">
+  <canvas id="ccCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+</div>
+
+<!-- ═══════ PLAYER INTRO SCREEN ═══════ -->
+<div id="playerIntroScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:600;background:#000008;align-items:center;justify-content:center;">
+  <canvas id="introCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+</div>
+
+<div id="gameScale">
+<div id="world">
+  <div id="night"></div>
+  <div id="scroll">
+    <canvas id="worldCanvas"></canvas>
+  </div>
+  <!-- char is a separate element, positioned in viewport coords -->
+  <div id="char"><canvas id="charCanvas" width="32" height="52"></canvas></div>
+  <div id="speech"></div>
+  <div id="thought"></div>
+  <div id="hud">
+    <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f5e6c8;flex-shrink:0;">PIXEL</span>
+    <span class="pill loc" id="locpill">🏠 HOME</span>
+    <span class="pill mood" id="moodpill">😐 Neutral <span id="moodbar"><span id="moodfill" style="width:50%;background:#aaa"></span></span></span>
+    <span class="pill time" id="timepill">☀️ 09:00</span>
+    <span style="flex:1"></span>
+    <span id="statustxt" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:1px;flex-shrink:0;"></span>
+    <button id="mpConnectBtn" title="Play Online Co-op">🌐 PLAY ONLINE</button>
+    <div id="mpStatusBar" style="display:none"></div>
+    <button id="saveBtn" title="Save / Backups">💾</button>
+    <button id="musicBtn" title="Music player">🎵</button>
+    <button id="xpBtn" title="Toggle skills">⚔</button>
+    <button id="invBtn" title="Inventory [TAB]">🎒</button>
+    <button id="equipBtn" title="Equipment [G]">🛡</button>
+    <button id="craftHudBtn" title="Crafting [C]">⚒</button>
+    <span style="position:relative;display:inline-flex;">
+      <button id="questBtn" title="Quests">📋</button>
+      <span id="questBadge"></span>
+    </span>
+  </div>
+
+  <!-- XP PANEL -->
+  <div id="xpPanel">
+    <div id="xpPanelHeader">
+      <span class="xp-title">SKILLS</span>
+      <span id="xpClose">✕ close</span>
+    </div>
+    <div id="skillRows"></div>
+    <div id="xpTotals"></div>
+  </div>
+
+  <!-- SAVE PANEL -->
+  <div id="savePanel">
+    <div id="savePanelHeader">
+      <span class="sv-title">SAVE DATA</span>
+      <span id="saveClose">✕ close</span>
+    </div>
+    <div id="saveActions">
+      <button class="sv-btn save"   onclick="manualSave()">💾 SAVE NOW</button>
+      <button class="sv-btn backup" onclick="manualBackup()">📦 BACKUP</button>
+      <button class="sv-btn clear"  onclick="confirmClear()">🗑 CLEAR</button>
+    </div>
+    <div id="saveStatus"></div>
+    <div id="backupList"></div>
+  </div>
+
+  <!-- MUSIC PANEL -->
+  <div id="musicPanel">
+    <div id="musicPanelHeader">
+      <span class="mu-title">♪ MUSIC</span>
+      <span id="musicClose">✕ close</span>
+    </div>
+    <div id="musicNowPlaying">
+      <div id="musicTrackName">— nothing playing —</div>
+      <div id="musicTrackStatus">PAUSED · click play or interact to start</div>
+      <div id="musicPanelBars">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <div id="musicControls">
+      <button class="mu-btn" id="muPrev" title="Previous">⏮</button>
+      <button class="mu-btn" id="muPlayPause" title="Play/Pause">▶</button>
+      <button class="mu-btn" id="muNext" title="Next">⏭</button>
+      <button class="mu-btn" id="muShuffle" title="Shuffle" style="margin-left:auto;">⇌</button>
+    </div>
+    <div id="musicVolRow">
+      <label>VOL</label>
+      <input type="range" id="muVolSlider" min="0" max="100" value="70">
+      <span id="musicVolPct">70%</span>
+    </div>
+    <div id="musicTrackList"></div>
+  </div>
+
+  <!-- QUEST PANEL -->
+  <div id="questPanel">
+    <div id="questPanelHeader">
+      <span class="qp-title">📋 QUESTS</span>
+      <span id="questClose">✕ close</span>
+    </div>
+    <div id="questList"></div>
+  </div>
+
+  <!-- QUEST COMPLETE TOAST -->
+  <div id="questToast">
+    <div class="qtoast-top">QUEST COMPLETE</div>
+    <div id="questToastTitle"></div>
+    <div id="questToastRewards"></div>
+  </div>
+
+  <!-- ADMIN BADGE -->
+  <div id="adminBadge">⚙ ADMIN</div>
+
+  <!-- LEVEL UP TOAST -->
+  <div id="lvlToast">
+    <div class="toast-top">LEVEL UP</div>
+    <div class="toast-skill" id="toastSkill">Strength</div>
+    <span class="toast-num" id="toastNum">2</span>
+    <div class="toast-bot">CONGRATULATIONS</div>
+  </div>
+  <div id="radiolabel">📻 LIVE RADIO</div>
+  <div id="ticker"><div id="ticktext">loading...</div></div>
+
+  <!-- CHAT TOGGLE -->
+  <button id="chatToggle" title="Toggle chat">
+    💬
+    <span class="unread" id="unreadDot"></span>
+  </button>
+
+  <!-- CHAT PANEL (hidden by default) -->
+  <div id="chatPanel">
+    <div id="chatHeader">
+      <span id="chatHeaderName">PIXEL</span>
+      <span id="chatHeaderStatus">idle</span>
+    </div>
+    <div id="webllmProgress" style="display:none;padding:6px 10px;font-size:11px;color:#aaffaa;background:rgba(0,40,0,0.6);border-bottom:1px solid rgba(100,255,100,0.15);line-height:1.4;word-break:break-word;"></div>
+    <div id="chatHistory"></div>
+    <div id="chatInputRow">
+      <input id="chatinput" placeholder="say something..." maxlength="300" autocomplete="off"/>
+      <button id="sendbtn">↵</button>
+    </div>
+  </div>
+  <div id="log"></div>
+
+  <!-- BREAKING NEWS ALERT -->
+  <div id="newsAlert">
+    <div id="newsAlertBar">
+      <span>⚡ BREAKING NEWS</span>
+      <span id="newsAlertClose" onclick="document.getElementById('newsAlert').classList.remove('show')">✕</span>
+    </div>
+    <div id="newsAlertBody">loading...</div>
+  </div>
+
+  <!-- INVENTORY OVERLAY -->
+  <div id="invOverlay">
+    <div id="invWindow">
+      <div id="invTitleBar">
+        <span class="inv-title">🎒 INVENTORY</span>
+        <span class="inv-sub">TAB to open · ESC to close</span>
+        <button id="invSortBtn" title="Sort inventory">⇅ SORT</button>
+        <span id="invClose">✕</span>
+      </div>
+      <div id="invTabs">
+        <div class="inv-tab active" data-tab="all">ALL</div>
+        <div class="inv-tab" data-tab="resource">RESOURCES</div>
+        <div class="inv-tab" data-tab="food">FOOD</div>
+        <div class="inv-tab" data-tab="equipment">EQUIPMENT</div>
+        <div class="inv-tab" data-tab="misc">MISC</div>
+      </div>
+      <div id="invBody">
+        <div id="invGrid"></div>
+        <div id="invDetail">
+          <div id="invDetailIcon">🎒</div>
+          <canvas id="invDetailIconCanvas" width="56" height="56"></canvas>
+          <div id="invDetailName"></div>
+          <div id="invDetailType"></div>
+          <div id="invDetailDesc"></div>
+          <div id="invDetailStats"></div>
+          <div id="invDetailQty"></div>
+          <button id="invEquipBtn" style="display:none">EQUIP</button>
+          <div id="invDetailNone">hover an item<br>to see details</div>
+        </div>
+      </div>
+      <div id="invFooter">
+        <span id="invWeightTxt">0 / 50 kg</span>
+        <div id="invWeightBar"><div id="invWeightFill"></div></div>
+        <span id="invCountTxt">0 items</span>
+        <span id="moneyDisplay" style="margin-left:auto;font-family:'Press Start 2P',monospace;font-size:9px;color:#ffd700;letter-spacing:1px;">$0</span>
+      </div>
+    </div>
+    <div id="invDragGhost"></div>
+    <div id="invContextMenu">
+      <div class="inv-ctx-item" id="invCtxEquip">⚔ EQUIP</div>
+      <div class="inv-ctx-item" id="invCtxDissolve">💧 DISSOLVE</div>
+      <div class="inv-ctx-item inv-ctx-danger" id="invCtxDestroy">✕ DESTROY</div>
+    </div>
+  </div>
+
+  <!-- ═══════ MINES TUTORIAL POPUP ═══════ -->
+  <div id="minesTutorialOverlay">
+    <div id="minesTutorialCard">
+      <div id="minesTutorialIcon">⛏</div>
+      <div id="minesTutorialTitle">STONEPICK MINES</div>
+      <div id="minesTutorialSub">Gathering Zone · Tutorial</div>
+      <div id="minesTutorialBody">
+        <p>The mines are full of resources — but you'll need proper tools to gather them efficiently. <strong>Good news: you already have enough materials to forge all three.</strong></p>
+        <div class="ct-steps">
+          <div class="ct-step">
+            <span class="ct-step-num">01</span>
+            <div class="ct-step-text">
+              <strong>FORGE YOUR TOOLS  <span class="ct-recipes">⛏ 4 metal+3 wood · 🪓 3 metal+4 wood · 🌿 2 metal+2 wood+3 fiber</span></strong>
+              <span>Open the Crafting Bench [C] · Pickaxe speeds up swings · Axe boosts ore yield · Scythe extends reach</span>
+            </div>
+          </div>
+          <div class="ct-step">
+            <span class="ct-step-num">02</span>
+            <div class="ct-step-text">
+              <strong>EQUIP YOUR TOOLS</strong>
+              <span>Open Equipment [G] and slot each tool into the bottom row</span>
+            </div>
+          </div>
+          <div class="ct-step">
+            <span class="ct-step-num">03</span>
+            <div class="ct-step-text">
+              <strong>MINE!</strong>
+              <span>Stand next to a node · [E] to swing · [F1] for idle auto-mine · [ESC] to leave</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="minesTutorialBtns">
+        <button id="minesTutorialCraftBtn">⚒ OPEN CRAFTING</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ COMBAT TUTORIAL OVERLAY ═══════ -->
+  <div id="combatTutorialOverlay">
+    <div id="combatTutorialCard">
+      <div id="combatTutorialHeader">
+        <div id="combatTutorialTitle">⚔️ DOWNTOWN STRIP</div>
+        <div id="combatTutorialSub">Combat Zone — Read Before You Fight</div>
+      </div>
+
+      <div class="ctut-cols">
+        <div class="ctut-section">
+          <div class="ctut-section-label">CONTROLS</div>
+          <div class="ctut-row"><span class="ctut-key">← → / A D</span><span>Move</span></div>
+          <div class="ctut-row"><span class="ctut-key">Space / W</span><span>Jump</span></div>
+          <div class="ctut-row"><span class="ctut-key">E</span><span>Attack</span></div>
+          <div class="ctut-row"><span class="ctut-key">Q</span><span>Block</span></div>
+          <div class="ctut-row"><span class="ctut-key">Esc</span><span>Leave zone</span></div>
+        </div>
+
+        <div class="ctut-section">
+          <div class="ctut-section-label">COMBAT TIPS</div>
+          <div class="ctut-tip">👁 Watch for the enemy <b>red glow</b> — that's their windup. Block before it lands.</div>
+          <div class="ctut-tip">🛡 Blocking absorbs ~88% of damage. You still take chip — don't just hold Q.</div>
+          <div class="ctut-tip">⚔️ Attack right after an enemy swings. They're vulnerable in recovery frames.</div>
+          <div class="ctut-tip">💊 You respawn in-zone if you die. Gear up better and go again.</div>
+        </div>
+      </div>
+
+      <div class="ctut-coming-soon">
+        <div class="ctut-section-label">COMING SOON</div>
+        <div class="ctut-soon-grid">
+          <span>🏹 Bows</span>
+          <span>🗡️ Daggers</span>
+          <span>🔮 Magic Skills</span>
+          <span>✨ Arcane Weapons</span>
+        </div>
+      </div>
+
+      <div class="ctut-crafting-note">
+        <span class="ctut-note-icon">⚒</span>
+        <span>There's serious depth in crafting — bonus set effects, rare affixes, and tier upgrades await. Grind hard, farm materials, and hunt blueprints to unlock better recipes. The further you explore, the rarer the loot.</span>
+      </div>
+
+      <button id="combatTutorialDismiss">ENTER THE STRIP →</button>
+    </div>
+  </div>
+
+  <!-- ═══════ PORTAL LOCKED OVERLAY ═══════ -->
+  <div id="dtPortalLockedOverlay">
+    <div id="dtPortalLockedCard">
+      <div id="dtPortalLockedHeader">
+        <div id="dtPortalLockedTitle">🌀 PORTAL LOCKED</div>
+        <div id="dtPortalLockedSub">You need a crafted item to open the rift.</div>
+      </div>
+      <div class="dtpl-item-row">
+        <div class="dtpl-item-icon">🌀</div>
+        <div class="dtpl-item-info">
+          <div class="dtpl-item-name">WARDEN'S SUMMON</div>
+          <div class="dtpl-item-desc">A crackling sigil forged from Street Tags. Calling the Warden costs blood — craft it at the workbench before approaching this portal.</div>
+        </div>
+      </div>
+      <div class="dtpl-how">
+        <div class="dtpl-how-label">HOW TO CRAFT</div>
+        <div class="dtpl-how-step">1. Farm enemies on the Strip for <b>Street Tags</b></div>
+        <div class="dtpl-how-step">2. Open the <b>Crafting</b> bench (C key)</div>
+        <div class="dtpl-how-step">3. Find <b>Warden's Summon</b> in the recipe list and craft it</div>
+        <div class="dtpl-how-step">4. Return here and press <b>F</b> to use the portal</div>
+      </div>
+      <button id="dtPortalLockedDismiss">GOT IT — BACK TO FARMING</button>
+    </div>
+  </div>
+
+  <!-- ═══════ DOWNTOWN TUTORIAL POPUP ═══════ -->
+  <div id="craftTutorialOverlay">
+    <div id="craftTutorialCard">
+      <div id="craftTutorialIcon">⚠</div>
+      <div id="craftTutorialTitle">NOT READY YET</div>
+      <div id="craftTutorialSub">Downtown Strip · Combat Zone</div>
+      <div id="craftTutorialBody">
+        <p>You're heading into a combat zone without any gear. The Downtown Strip won't let you in without a <strong>weapon and shield</strong> equipped.</p>
+        <div class="ct-steps">
+          <div class="ct-step">
+            <span class="ct-step-num">01</span>
+            <div class="ct-step-text">
+              <strong>HEAD TO THE MINES</strong>
+              <span>Gather metal, stone, coal and ore from Stonepick Mines</span>
+            </div>
+          </div>
+          <div class="ct-step">
+            <span class="ct-step-num">02</span>
+            <div class="ct-step-text">
+              <strong>CRAFT A SWORD &amp; SHIELD</strong>
+              <span>The crafting bench is now unlocked — both are required to enter</span>
+            </div>
+          </div>
+          <div class="ct-step">
+            <span class="ct-step-num">03</span>
+            <div class="ct-step-text">
+              <strong>EQUIP BOTH &amp; RETURN</strong>
+              <span>Have your ⚔ weapon and 🛡 off-hand equipped, then come back</span>
+            </div>
+          </div>
+        </div>
+        <div id="craftTutorialUnlockNote">⚒ CRAFTING BENCH UNLOCKED</div>
+      </div>
+      <div id="craftTutorialBtns">
+        <button id="craftTutorialDismiss">MAYBE LATER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ CRAFTING OVERLAY ═══════ -->
+  <div id="craftOverlay">
+    <div id="craftWindow">
+      <div id="craftTitleBar">
+        <span class="craft-title">⚒ CRAFTING</span>
+        <span class="craft-sub">[C] toggle · ESC close</span>
+        <button id="craftInfoBtn" title="Affix &amp; Stats Reference">ℹ</button>
+        <span id="craftClose">✕</span>
+      </div>
+      <div id="craftBody">
+        <div id="craftListCol">
+          <div id="craftSearchWrap">
+            <input id="craftSearch" type="text" placeholder="🔍  search recipes…" autocomplete="off" spellcheck="false" />
+          </div>
+          <div id="craftList"></div>
+        </div>
+        <div id="craftDetail">
+          <div id="craftDetailNone">select a recipe<br>to begin crafting</div>
+          <div id="craftDetailContent" style="display:none">
+            <div id="craftDetailIcon"></div>
+            <div id="craftDetailName"></div>
+            <div id="craftDetailRarity"></div>
+            <div id="craftLevelReq"></div>
+            <div id="craftSuccessChance"></div>
+            <div id="craftDetailDesc"></div>
+            <div id="craftIngredients"></div>
+            <div id="craftCanMake"></div>
+            <button id="craftDoBtn" disabled>CRAFT</button>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ AFFIX & STATS GUIDE ═══════ -->
+  <div id="craftAffixGuide">
+    <div id="craftAffixGuideCard">
+      <div id="craftAffixGuideHeader">
+        <div id="craftAffixGuideTitle">⚔ STATS &amp; AFFIX REFERENCE</div>
+        <span id="craftAffixGuideClose">✕</span>
+      </div>
+      <div id="craftAffixGuideBody">
+
+        <div class="cag-section">
+          <div class="cag-section-title" style="color:#ff6644">⚔ OFFENSIVE</div>
+          <div class="cag-row"><span class="cag-name" style="color:#ff8866">Raw Dmg</span><span class="cag-desc">Adds flat damage to every attack, stacking directly on top of your weapon's base damage. No conditions — always active.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#44ffcc">Strike Tempo</span><span class="cag-desc">Reduces attack animation length, letting you swing more frequently. Higher values noticeably increase your damage output over time.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#ffaa44">Lethal Chance %</span><span class="cag-desc">Each point gives a flat % chance to trigger a Lethal Hit. A Lethal Hit multiplies your damage by the Lethal Mult affix (or 1.5× by default).</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#ff5522">Lethal Mult</span><span class="cag-desc">Determines how hard a Lethal Hit hits. For example, 15 = 1.15× damage on a Lethal. Pair with Lethal Chance for burst damage.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#ff6600">Sunder Chance %</span><span class="cag-desc">Chance on hit to apply Sunder to the target, temporarily reducing their defense. Sundered enemies take more damage from all sources.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#ff4400">Crush Potency</span><span class="cag-desc">Amplifies Crush effects, dealing bonus damage to heavily armored targets. More effective the more armor the enemy has.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#aa44cc">Wither Potency</span><span class="cag-desc">Amplifies Wither effects, reducing enemy stats over time on hit. Stacks with multiple hits before expiring.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#cc8844">Armor Shred</span><span class="cag-desc">Permanently strips a portion of the enemy's armor rating per hit during the fight. Makes each subsequent hit deal more damage.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#ffff44">Fateful Strike %</span><span class="cag-desc">Each point adds a 3% chance to deal a 1.5× critical hit. Fully independent from Lethal — both can trigger on the same attack.</span></div>
+        </div>
+
+        <div class="cag-section">
+          <div class="cag-section-title" style="color:#4488ff">🛡 DEFENSIVE</div>
+          <div class="cag-row"><span class="cag-name" style="color:#88aacc">Hardiness</span><span class="cag-desc">Flat damage reduction on every hit you receive. Each point reduces incoming damage by ~0.25. Effective against fast, low-hit enemies.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#66dd88">Vitality</span><span class="cag-desc">Increases your maximum HP. Simple and reliable — more total health means more room for mistakes.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#44ff88">Vit Regen</span><span class="cag-desc">Slowly restores HP over time while you are out of active combat. The higher the value, the faster you recover between fights.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#88ccff">Veil</span><span class="cag-desc">Creates an absorption barrier that takes hits before your HP does. Recharges when you haven't taken damage for a short time.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#aaffdd">Dodge %</span><span class="cag-desc">Flat chance to completely avoid an incoming attack. A dodge negates all damage from that hit. Effective against single large hits.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#ff88cc">Rebuke</span><span class="cag-desc">Reflects a small amount of damage back at any enemy that strikes you. Passive — no action required. Scales with the value.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#6688ff">Rampart</span><span class="cag-desc">Reduces the chip damage that bleeds through your block. Without Rampart, blocking still deals chip damage. High values make blocking very efficient.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#88ffaa">All Resist %</span><span class="cag-desc">Reduces ALL incoming damage by a percentage before other reductions. Stacks multiplicatively, capped at 80%. Best-in-slot defensive affix for bosses.</span></div>
+        </div>
+
+        <div class="cag-section">
+          <div class="cag-section-title" style="color:#ffdd44">✦ UTILITY</div>
+          <div class="cag-row"><span class="cag-name" style="color:#ffdd44">Stride Speed</span><span class="cag-desc">Increases your movement speed. Useful for dodging attacks manually, exploring faster, and repositioning in combat.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#cc88ff">Essence</span><span class="cag-desc">Increases your maximum Essence pool. Essence is consumed by active abilities — a larger pool means more uses before needing to regenerate.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#aa88ff">Flux</span><span class="cag-desc">Increases your Essence regeneration rate. Pairs with Essence Max — having a bigger pool matters less if it refills slowly.</span></div>
+        </div>
+
+        <div class="cag-section">
+          <div class="cag-section-title" style="color:#ffcc88">◈ TRAITS</div>
+          <div class="cag-row"><span class="cag-name" style="color:#ffaa66">Brawn</span><span class="cag-desc">Scales physical damage output and increases carry weight. Good for heavy weapons. Each point provides a compound bonus across multiple damage formulas.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#aaff88">Agility</span><span class="cag-desc">Improves attack speed scaling and contributes to your base Dodge chance. Favours light weapon builds and hit-and-run playstyles.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#88aaff">Mind</span><span class="cag-desc">Boosts skill XP gain rates and expands your Essence pool passively. Important for progression builds focused on levelling skills fast.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#ffcc88">Resolve</span><span class="cag-desc">Improves HP regeneration rate and reduces the duration of debuffs applied to you. Best in long, sustained fights.</span></div>
+        </div>
+
+        <div class="cag-section">
+          <div class="cag-section-title" style="color:#ff6688">💢 ON-HIT</div>
+          <div class="cag-row"><span class="cag-name" style="color:#ff6688">Vit on Hit</span><span class="cag-desc">Restores HP equal to this value on each successful hit you land. Aggressive fighters benefit more — the more hits you deal, the more you heal.</span></div>
+        </div>
+
+        <div class="cag-section">
+          <div class="cag-section-title" style="color:#ffbb44">⛏ GATHERING</div>
+          <div class="cag-row"><span class="cag-name" style="color:#ffbb44">Mine Speed</span><span class="cag-desc">Reduces the cooldown between mining swings. Directly increases how many ore strikes you can land per minute in the Mines.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#44ddaa">Yield</span><span class="cag-desc">Increases the quantity of ore received from each successful mine strike. Stacks with base yield — essential for efficient resource farming.</span></div>
+          <div class="cag-row"><span class="cag-name" style="color:#88ccff">Reach</span><span class="cag-desc">Extends the effective range of your mining tool, allowing you to hit ore veins from further away and strike multiple nodes per swing.</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ CRAFT RESULT POPUP ═══════ -->
+  <div id="craftResultOverlay">
+    <div id="craftResultCard">
+      <div id="craftResultLabel">CRAFTED!</div>
+      <div id="craftResultIcon"></div>
+      <div id="craftResultName"></div>
+      <div id="craftResultRarity"></div>
+      <div id="craftResultXP"></div>
+      <div id="craftResultStats"></div>
+      <button id="craftResultDismiss">CONTINUE</button>
+    </div>
+  </div>
+
+  <!-- ═══════ WORLD MAP OVERLAY ═══════ -->
+  <div id="worldMapOverlay">
+    <div id="worldMapPanel">
+      <canvas id="mapCanvas" width="940" height="520"></canvas>
+      <div id="mapHeader">
+        <span id="mapHeaderTitle">◈ WORLD MAP</span>
+        <span id="mapHeaderSub">CLICK A LOCATION TO TRAVEL · [M] TO CLOSE</span>
+        <span id="mapClose">✕ CLOSE</span>
+      </div>
+      <div id="mapInfoBar">
+        <span id="mapInfoEmoji">🌐</span>
+        <span id="mapInfoName">SELECT A LOCATION</span>
+        <span id="mapInfoDesc">Hover or click a pin to see details</span>
+        <button id="mapTravelBtn" class="current">ALREADY HERE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ EQUIPMENT OVERLAY ═══════ -->
+  <div id="equipOverlay">
+    <div id="equipWindow">
+      <div id="equipTitleBar">
+        <span class="eq-title">🛡 EQUIPMENT</span>
+        <span class="eq-sub">double-click to unequip · [G] toggle · ESC close</span>
+        <span id="equipClose">✕</span>
+      </div>
+      <div id="equipBody">
+        <div id="eqLeft">
+          <div id="eqSlotGrid"></div>
+          <div id="eqPreviewArea">
+            <canvas id="eqCharPreview" width="120" height="160"></canvas>
+            <div id="eqPreviewControls">
+              <button class="eq-rot-btn" id="eqRotL">◀</button>
+              <span id="eqPreviewLabel">PREVIEW</span>
+              <button class="eq-rot-btn" id="eqRotR">▶</button>
+            </div>
+          </div>
+        </div>
+        <div id="eqStatsPanel"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ WARP OVERLAY ═══════ -->
+  <div id="warpOverlay">
+    <canvas id="warpCanvas" width="1100" height="580"></canvas>
+  </div>
+
+  <!-- ═══════ SCENE 2: COASTAL DOCKS ═══════ -->
+  <div id="scene2">
+    <canvas id="scene2Canvas" width="1100" height="580"></canvas>
+  </div>
+
+  <!-- ═══════ SCENE 3: STONEPICK MINES ═══════ -->
+  <div id="minesScene" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;">
+    <canvas id="minesCanvas" width="1100" height="580"></canvas>
+  </div>
+
+  <!-- ═══════ SCENE 5: GROVE PARK ═══════ -->
+  <div id="parkScene" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;">
+    <canvas id="parkCanvas" width="1100" height="580"></canvas>
+  </div>
+
+  <!-- ═══════ SCENE 4: DOWNTOWN STRIP ═══════ -->
+  <div id="downtownScene" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;">
+    <canvas id="downtownCanvas" width="1100" height="580"></canvas>
+  </div>
+
+  <!-- ═══════ SCENE 6: BOSS ARENA ═══════ -->
+  <div id="bossArenaScene" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:110;">
+    <canvas id="bossArenaCanvas" width="1100" height="580"></canvas>
+  </div>
+
+  <!-- ═══════ BOSS ARENA TUTORIAL OVERLAY ═══════ -->
+  <div id="bossArenaTutOverlay">
+    <div id="bossArenaTutCard">
+      <div id="bossArenaTutHeader">
+        <div id="bossArenaTutTitle">☠ DOWNTOWN WARDEN</div>
+        <div id="bossArenaTutSub">Boss Fight — Learn The Mechanics</div>
+      </div>
+
+      <div class="batut-intro">
+        The Warden has <strong>three learnable attack patterns</strong>. Read them before you step in — they can all be dodged once you know what to look for.
+      </div>
+
+      <div class="batut-mechs">
+        <div class="batut-mech">
+          <div class="batut-mech-icon">🔴</div>
+          <div class="batut-mech-body">
+            <div class="batut-mech-name">WINDUP SWING</div>
+            <div class="batut-mech-desc">The Warden <b>flashes red</b> before striking. Block <span class="batut-key">Q</span> just before the hit lands — or back away out of range.</div>
+          </div>
+        </div>
+        <div class="batut-mech">
+          <div class="batut-mech-icon">⚡</div>
+          <div class="batut-mech-body">
+            <div class="batut-mech-name">CHARGE RUSH</div>
+            <div class="batut-mech-desc">He winds up, then <b>sprints across the entire arena</b>. Jump <span class="batut-key">Space</span> over him to avoid the hit — blocking alone won't stop the force.</div>
+          </div>
+        </div>
+        <div class="batut-mech">
+          <div class="batut-mech-icon">💥</div>
+          <div class="batut-mech-body">
+            <div class="batut-mech-name">GROUND SLAM</div>
+            <div class="batut-mech-desc">He <b>leaps into the air</b> then crashes down, sending <b>shockwaves along the floor</b>. Jump <span class="batut-key">Space</span> over the wave — standing on the ground will hurt you.</div>
+          </div>
+        </div>
+        <div class="batut-mech">
+          <div class="batut-mech-icon">🔥</div>
+          <div class="batut-mech-body">
+            <div class="batut-mech-name">RAGE MODE — 50% HP</div>
+            <div class="batut-mech-desc">Below half health the Warden <b>enters a fury</b> — faster, harder hits, double shockwaves on slam. A red border appears. <b>Stay mobile.</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="batut-controls">
+        <span><span class="batut-key">← →</span> Move</span>
+        <span><span class="batut-key">Space / W</span> Jump</span>
+        <span><span class="batut-key">E</span> Attack</span>
+        <span><span class="batut-key">Q</span> Block</span>
+        <span><span class="batut-key">Esc</span> Leave</span>
+      </div>
+
+      <button id="bossArenaTutDismiss">ENTER THE ARENA →</button>
+    </div>
+  </div>
+
+  <!-- ═══════ BOSS ARENA DEATH TUTORIAL ═══════ -->
+  <div id="baDeathTutOverlay">
+    <div id="baDeathTutCard">
+      <div id="baDeathTutHeader">
+        <div id="baDeathTutTitle">💀 DEFEATED</div>
+        <div id="baDeathTutSub">The Warden sent you back to the Strip.</div>
+      </div>
+
+      <div class="badtut-section">
+        <div class="badtut-tip">
+          <span class="badtut-icon">💊</span>
+          <div>
+            <div class="badtut-tip-title">USE CONSUMABLES</div>
+            <div class="badtut-tip-desc">Consumable items like health potions restore your HP mid-fight. Craft them at the crafting station and bring them into the arena.</div>
+          </div>
+        </div>
+        <div class="badtut-tip">
+          <span class="badtut-icon">🌀</span>
+          <div>
+            <div class="badtut-tip-title">NEW SUMMON REQUIRED</div>
+            <div class="badtut-tip-desc">You'll need a fresh Warden's Summon to re-enter. The cost has gone up — farm the Strip for <strong>100 Street Tags</strong> and forge a new one.</div>
+          </div>
+        </div>
+        <div class="badtut-tip">
+          <span class="badtut-icon">🛡</span>
+          <div>
+            <div class="badtut-tip-title">REVIEW THE MECHANICS</div>
+            <div class="badtut-tip-desc"><b>Block</b> the windup swing · <b>Jump</b> the charge rush · <b>Jump</b> shockwaves when he slams. Stay off the ground floor when they roll in.</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="baDeathTutDismiss">BACK TO THE STRIP →</button>
+    </div>
+  </div>
+
+  <!-- ═══════ DEMO END OVERLAY ═══════ -->
+  <div id="demoEndOverlay">
+    <div id="demoEndCard">
+      <div id="demoEndBadge">✦ DEMO COMPLETE ✦</div>
+      <div id="demoEndTitle">THANKS FOR PLAYING</div>
+      <div id="demoEndSub">PIXEL PAL — EARLY ACCESS DEMO</div>
+
+      <div class="demo-divider"></div>
+
+      <div class="demo-blurb">
+        You defeated the <span class="demo-hl">Downtown Warden</span> and proved you belong on the Strip.
+        The full game is in active development — Tier 2 and beyond are on the way.
+      </div>
+
+      <div class="demo-coming-soon">
+        <div class="demo-cs-label">COMING IN FULL RELEASE</div>
+        <div class="demo-cs-grid">
+          <div class="demo-cs-item"><span class="demo-cs-icon">🏙️</span><span>Tier 2 — The Heights</span></div>
+          <div class="demo-cs-item"><span class="demo-cs-icon">⚔️</span><span>New enemies &amp; bosses</span></div>
+          <div class="demo-cs-item"><span class="demo-cs-icon">🏠</span><span>Housing &amp; base building</span></div>
+          <div class="demo-cs-item"><span class="demo-cs-icon">🤝</span><span>Faction system</span></div>
+          <div class="demo-cs-item"><span class="demo-cs-icon">🗺️</span><span>Expanded world map</span></div>
+          <div class="demo-cs-item"><span class="demo-cs-icon">💬</span><span>Deeper NPC storylines</span></div>
+        </div>
+      </div>
+
+      <div class="demo-divider"></div>
+
+      <div class="demo-tip">
+        Your progress is saved — feel free to keep exploring the demo,
+        farming gear, and levelling up while you wait.
+      </div>
+
+      <button id="demoEndDismiss">KEEP PLAYING →</button>
+    </div>
+  </div>
+
+  <!-- ═══════ MULTIPLAYER LOBBY OVERLAY ═══════ -->
+  <div id="mpLobbyOverlay" style="display:none">
+    <div id="mpLobbyCard">
+      <div id="mpLobbyHeader">
+        <span id="mpLobbyTitle">🌐 ONLINE CO-OP</span>
+        <span id="mpLobbyClose">✕</span>
+      </div>
+
+      <div id="mpLobbyTabs">
+        <div class="mp-tab active" id="mpTabHost">HOST GAME</div>
+        <div class="mp-tab" id="mpTabJoin">JOIN GAME</div>
+      </div>
+
+      <!-- HOST PANE -->
+      <div id="mpHostPane">
+        <div class="mp-label">Your IP — give this to your friend:</div>
+        <div id="mpMyIpWrap"><span id="mpMyIp">detecting...</span></div>
+        <div class="mp-label" style="margin-top:8px">Room code:</div>
+        <div id="mpLobbyCodeWrap">
+          <span id="mpLobbyCode">——————</span>
+          <button id="mpCopyCodeBtn">📋 COPY</button>
+        </div>
+        <button id="mpCreateBtn" class="mp-btn">CREATE ROOM</button>
+        <div id="mpLobbyWait" style="display:none">
+          <span class="mp-spinner">⏳</span> Waiting for player 2...
+        </div>
+      </div>
+
+      <!-- JOIN PANE -->
+      <div id="mpJoinPane" style="display:none">
+        <div class="mp-label">Host's IP address:</div>
+        <input id="mpHostIpInput" type="text" placeholder="192.168.x.x" autocomplete="off" spellcheck="false" style="text-transform:none;" />
+        <div class="mp-label" style="margin-top:8px">Room code:</div>
+        <input id="mpJoinInput" type="text" maxlength="6" placeholder="XXXXXX" autocomplete="off" spellcheck="false" />
+        <button id="mpJoinBtn" class="mp-btn">JOIN ROOM</button>
+      </div>
+
+      <div id="mpLobbyError" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ═══════ DISCONNECT OVERLAY ═══════ -->
+  <div id="mpDisconnectOverlay" style="display:none">
+    <div id="mpDisconnectCard">
+      <div id="mpDisconnectTitle">📡 PLAYER 2 DISCONNECTED</div>
+      <div id="mpDisconnectSub">The session has ended. Your progress is saved.</div>
+      <button id="mpDismissDisconnect">OK — KEEP PLAYING</button>
+    </div>
+  </div>
+
+  <!-- MUSIC VISUALIZER -->
+  <!-- UPDATE BANNER -->
+  <div id="updateBanner" style="display:none">
+    <span id="updateBannerVersion"></span>
+    <span id="updateBannerMsg">— run UPDATE.bat to install</span>
+    <span id="updateBannerDismiss">✕</span>
+  </div>
+
+  <div id="musicBar">
+    <span style="background:#aa44ff"></span>
+    <span style="background:#cc44ff"></span>
+    <span style="background:#ff44cc"></span>
+    <span style="background:#cc44ff"></span>
+    <span style="background:#aa44ff"></span>
+  </div>
+  <div id="musicLabel">♪ playing</div>
+</div><!-- end #world -->
+</div><!-- end #gameScale -->
+
+<!-- Fullscreen + scaling: game fills the screen, border stays the edge -->
+<script>
+  (function() {
+    var GAME_W = 1100, GAME_H = 580;
+
+    // Scale the game to fill the viewport, preserving aspect ratio.
+    // Transform goes on #gameScale (no overflow:hidden) — not on #world —
+    // so overflow:hidden + will-change:transform children stay unaffected.
+    function scaleWorld() {
+      var gs = document.getElementById('gameScale');
+      if (!gs) return;
+      var scale = Math.min(window.innerWidth / GAME_W, window.innerHeight / GAME_H);
+      gs.style.transform = 'scale(' + scale + ')';
+    }
+
+    window.addEventListener('resize', scaleWorld);
+    document.addEventListener('fullscreenchange',       scaleWorld);
+    document.addEventListener('webkitfullscreenchange', scaleWorld);
+    document.addEventListener('mozfullscreenchange',    scaleWorld);
+    // Run once on load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', scaleWorld);
+    } else {
+      scaleWorld();
+    }
+
+    // Fullscreen helpers
+    function requestFS() {
+      var el = document.documentElement;
+      var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (fn) fn.call(el).catch(function(){});
+    }
+    function exitFS() {
+      var fn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+      if (fn) fn.call(document).catch(function(){});
+    }
+    function isFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    }
+    var entered = false;
+    function onFirstInteraction() {
+      if (entered) return;
+      entered = true;
+      requestFS();
+      document.removeEventListener('click', onFirstInteraction);
+      document.removeEventListener('keydown', onFirstInteraction);
+    }
+    document.addEventListener('click', onFirstInteraction);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'F11') {
+        e.preventDefault();
+        if (isFullscreen()) exitFS(); else requestFS();
+        entered = true;
+      } else {
+        onFirstInteraction();
+      }
+    });
+  })();
+</script>
+
+<!-- Socket.IO — required for online co-op -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<!-- WebLLM: real Llama 3.2 1B running fully in browser via WebGPU -->
+<!-- Downloads ~600MB on first use, cached forever after that    -->
+<script type="module" src="webllm.js"></script>
+
+<!-- Game scripts — ORDER MATTERS: game.js defines globals used by everything else -->
+<script src="game.js"></script>
+<script src="world.js"></script>
+<script src="audio_engine.js"></script>
+<script src="ui.js"></script>
+<script src="ai.js"></script>
+<script src="npc.js"></script>
+<script src="map.js"></script>
+<script src="docks.js"></script>
+<script src="mines.js"></script>
+<script src="park.js"></script>
+<script src="downtown.js"></script>
+<script src="bossarena.js"></script>
+<script src="equip.js"></script>
+<script src="crafting.js"></script>
+<script src="save.js"></script>
+<script src="quests.js"></script>
+<script src="tutorial.js"></script>
+<script src="charCreation.js"></script>
+<script src="titlescreen.js"></script>
+<script src="admin.js"></script>
+<script src="multiplayer.js"></script>
+<script src="updater.js"></script>
+
+</body>
+</html>
