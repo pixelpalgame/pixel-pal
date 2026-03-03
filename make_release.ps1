@@ -65,19 +65,25 @@ Get-ChildItem $GameDir | Where-Object { $skip -notcontains $_.Name } | ForEach-O
 $zip.Dispose()
 
 $sizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+Write-Host "  pixel-pal.zip built ($sizeMB MB)"
+
+# ── Push to GitHub ────────────────────────────────────────────────
+Write-Host ""
+Write-Host "  Pushing to GitHub..."
+Set-Location $GameDir
+& git add . 2>&1 | Out-Null
+& git commit -m "v$newVersion" 2>&1 | Out-Null
+& git push 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  [!] Git push failed. Check your internet connection."
+    exit 1
+}
+Write-Host "  Pushed."
 
 Write-Host ""
 Write-Host "  +------------------------------------------+"
-Write-Host "  |  pixel-pal.zip built -- $sizeMB MB"
+Write-Host "  |  v$newVersion ready!"
+Write-Host "  |  Now run PUBLISH_RELEASE.bat to go live. |"
 Write-Host "  +------------------------------------------+"
-Write-Host ""
-Write-Host "  Next steps:"
-Write-Host "    1. git add ."
-Write-Host "    2. git commit -m v$newVersion"
-Write-Host "    3. git push"
-Write-Host "    4. Go to GitHub -> Releases -> Draft a new release"
-Write-Host "    5. Tag: v$newVersion"
-Write-Host "    6. Upload pixel-pal.zip as a release asset"
-Write-Host "    7. Publish release"
 Write-Host ""
 exit 0
