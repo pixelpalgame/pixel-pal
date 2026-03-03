@@ -2,6 +2,14 @@ param([string]$GameDir = $PSScriptRoot)
 
 $ProgressPreference = 'SilentlyContinue'
 
+trap {
+    Write-Host ""
+    Write-Host "  [ERROR] $_" -ForegroundColor Red
+    Write-Host ""
+    Read-Host "  Press Enter to close"
+    exit 1
+}
+
 $vData   = Get-Content (Join-Path $GameDir "version.json") -Raw | ConvertFrom-Json
 $version = $vData.version
 $repo    = $vData.repo
@@ -23,6 +31,7 @@ $headers = @{
 $zipPath = Join-Path $GameDir "pixel-pal.zip"
 if (-not (Test-Path $zipPath)) {
     Write-Host "  [!] pixel-pal.zip not found. Run MAKE_RELEASE.bat first."
+    Read-Host "  Press Enter to close"
     exit 1
 }
 
@@ -51,4 +60,5 @@ Invoke-RestMethod `
 
 Write-Host ""
 Write-Host "  Done: $($release.html_url)"
+Read-Host "  Press Enter to close"
 exit 0
