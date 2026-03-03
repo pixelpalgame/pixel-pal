@@ -2,10 +2,9 @@ param(
     [string]$GameDir = $PSScriptRoot
 )
 
-$ErrorActionPreference = 'Stop'
-$ProgressPreference    = 'SilentlyContinue'   # speeds up downloads
+$ProgressPreference = 'SilentlyContinue'
 
-# ── Read local version.json ─────────────────────────────────────
+# ── Read local version ────────────────────────────────────────────
 $localFile = Join-Path $GameDir "version.json"
 if (-not (Test-Path $localFile)) {
     Write-Host "  [!] version.json not found. Cannot check for updates."
@@ -14,13 +13,13 @@ if (-not (Test-Path $localFile)) {
 
 $localData    = Get-Content $localFile -Raw | ConvertFrom-Json
 $localVersion = [System.Version]$localData.version
-$repo         = $localData.repo   # "owner/repo-name"
+$repo         = $localData.repo
 
 Write-Host "  Current version : v$localVersion"
 Write-Host "  Repository      : $repo"
 Write-Host ""
 
-# ── Fetch remote version.json ───────────────────────────────────
+# ── Fetch remote version ──────────────────────────────────────────
 $rawUrl = "https://raw.githubusercontent.com/$repo/main/version.json"
 Write-Host "  Checking for updates..."
 
@@ -37,19 +36,20 @@ if ($remoteVersion -le $localVersion) {
     exit 0
 }
 
-# ── Update available ────────────────────────────────────────────
+# ── Update available ──────────────────────────────────────────────
 Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════╗"
-Write-Host ("  ║  UPDATE AVAILABLE:  v" + $localVersion + "  →  v" + $remoteVersion + "  ║")
-Write-Host "  ╚══════════════════════════════════════════╝"
+Write-Host "  +------------------------------------------+"
+Write-Host "  |  UPDATE AVAILABLE                        |"
+Write-Host "  |  v$localVersion  ->  v$remoteVersion"
+Write-Host "  +------------------------------------------+"
 Write-Host ""
-$ans = Read-Host "  Download and install now? [Y/N]"
+$ans = (Read-Host "  Download and install now? [Y/N]").Trim()
 if ($ans -notmatch '^[Yy]$') {
     Write-Host "  Skipped. Run UPDATE.bat any time to update."
     exit 0
 }
 
-# ── Download release zip ────────────────────────────────────────
+# ── Download ──────────────────────────────────────────────────────
 $zipUrl  = "https://github.com/$repo/releases/latest/download/pixel-pal.zip"
 $zipPath = Join-Path $GameDir "_update.zip"
 $tempDir = Join-Path $GameDir "_update_temp"
@@ -64,12 +64,12 @@ try {
     exit 1
 }
 
-# ── Extract ─────────────────────────────────────────────────────
+# ── Extract ───────────────────────────────────────────────────────
 Write-Host "  Extracting..."
 if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
 Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
 
-# GitHub zips often wrap files in a top-level folder — unwrap if so
+# Unwrap top-level folder if present (GitHub zip convention)
 $children  = Get-ChildItem $tempDir
 $sourceDir = if ($children.Count -eq 1 -and $children[0].PSIsContainer) {
     $children[0].FullName
@@ -77,8 +77,7 @@ $sourceDir = if ($children.Count -eq 1 -and $children[0].PSIsContainer) {
     $tempDir
 }
 
-# ── Copy files — skip runtime/ and node_modules/ ────────────────
-# (those are installed locally and don't change between game updates)
+# ── Copy files (skip runtime and node_modules) ────────────────────
 $skip = @('runtime', 'node_modules')
 
 Get-ChildItem $sourceDir | Where-Object { $skip -notcontains $_.Name } | ForEach-Object {
@@ -90,14 +89,14 @@ Get-ChildItem $sourceDir | Where-Object { $skip -notcontains $_.Name } | ForEach
     }
 }
 
-# ── Cleanup ──────────────────────────────────────────────────────
-Remove-Item $zipPath        -Force
+# ── Cleanup ───────────────────────────────────────────────────────
+Remove-Item $zipPath -Force
 Remove-Item $tempDir -Recurse -Force
 
 Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════╗"
-Write-Host "  ║   UPDATED TO v$remoteVersion — DONE!              ║"
-Write-Host "  ║   Relaunch the game to play.             ║"
-Write-Host "  ╚══════════════════════════════════════════╝"
+Write-Host "  +------------------------------------------+"
+Write-Host "  |  Updated to v$remoteVersion successfully!  |"
+Write-Host "  |  Relaunch the game to play.              |"
+Write-Host "  +------------------------------------------+"
 Write-Host ""
 exit 0

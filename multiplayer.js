@@ -394,29 +394,10 @@ const mp = (function () {
   function detectMyIp() {
     const el = document.getElementById('mpMyIp');
     if (!el) return;
-    // window.location.hostname is the LAN IP when accessed via network,
-    // or 'localhost' / '127.0.0.1' when opened locally.
-    const h = window.location.hostname;
-    if (h && h !== 'localhost' && h !== '127.0.0.1') {
-      el.textContent = h;
-    } else {
-      // Try WebRTC to find LAN IP
-      try {
-        const pc = new RTCPeerConnection({ iceServers: [] });
-        pc.createDataChannel('');
-        pc.createOffer().then(o => pc.setLocalDescription(o));
-        pc.onicecandidate = e => {
-          if (!e || !e.candidate) return;
-          const m = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate);
-          if (m && !m[1].startsWith('127.')) {
-            el.textContent = m[1];
-            pc.close();
-          }
-        };
-      } catch (_) {
-        el.textContent = 'run ipconfig to find your IP';
-      }
-    }
+    fetch('http://localhost:3001/localip')
+      .then(r => r.json())
+      .then(d => { el.textContent = d.ip || 'unavailable'; })
+      .catch(() => { el.textContent = 'run ipconfig to find your IP'; });
   }
 
   if (document.readyState === 'loading') {

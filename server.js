@@ -6,10 +6,31 @@
 
 const { createServer } = require('http');
 const { Server }       = require('socket.io');
+const os               = require('os');
 
 const PORT = process.env.PORT || 3001;
 
-const httpServer = createServer();
+// Find the local LAN IP (first non-internal IPv4 address)
+function getLanIp() {
+  const ifaces = os.networkInterfaces();
+  for (const iface of Object.values(ifaces)) {
+    for (const addr of iface) {
+      if (addr.family === 'IPv4' && !addr.internal) return addr.address;
+    }
+  }
+  return null;
+}
+
+const httpServer = createServer((req, res) => {
+  if (req.url === '/localip') {
+    const ip = getLanIp();
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ ip }));
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
 const io = new Server(httpServer, {
   cors: {
     origin: '*',   // allow any origin (game is local / file://)
